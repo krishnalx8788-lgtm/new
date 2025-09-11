@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Magic</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .scrollable-content {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            position: relative;
+            background: linear-gradient(135deg, #1f2937, #111827);
+            margin: 5% auto;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease-out;
+            border: 1px solid #374151;
+        }
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            color: #9ca3af;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease-in-out;
+        }
+        .close-btn:hover {
+            color: #f90;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Header Section -->
+    <header class="bg-gray-800 p-6 text-center border-b-4 border-yellow-500 shadow-lg">
+        <h1 class="text-5xl font-extrabold text-yellow-500 mb-4">Movie Magic</h1>
+        <div class="flex justify-center items-center space-x-4">
+            <div class="relative w-full max-w-xl">
+                <input type="text" id="movie-search" placeholder="Search for a movie..." class="w-full p-3 pl-12 rounded-full bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <button id="search-btn" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-gray-900">Search</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-8">
+        <!-- Featured Categories -->
+        <section class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-yellow-500 mb-6">Featured Categories</h2>
+            <div class="flex justify-center items-center flex-wrap gap-4">
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="thriller">Thriller</button>
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="romantic">Romantic</button>
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="action">Action</button>
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="comedy">Comedy</button>
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="horror">Horror</button>
+                <button class="category-btn bg-gray-700 hover:bg-yellow-500 text-gray-200 hover:text-gray-900 font-semibold py-3 px-6 rounded-full shadow-md transition-colors duration-200" data-category="sci-fi">Sci-Fi</button>
+            </div>
+        </section>
+
+        <!-- Movie List -->
+        <section id="movie-results" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <!-- Movie cards will be dynamically inserted here -->
+        </section>
+    </main>
+    
+    <!-- Modal for Movie Details -->
+    <div id="movie-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modal-body" class="p-6">
+                <!-- Movie details will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for dynamic functionality -->
+    <script>
+        const API_KEY = 'd293d69d';
+        const BASE_URL = 'http://127.0.0.1:5000/api';
+
+        const movieResults = document.getElementById('movie-results');
+        const searchInput = document.getElementById('movie-search');
+        const searchButton = document.getElementById('search-btn');
+        const categoryButtons = document.querySelectorAll('.category-btn');
+        const movieModal = document.getElementById('movie-modal');
+        const modalBody = document.getElementById('modal-body');
+        const closeModalButton = document.querySelector('.close-btn');
+
+        // Initial movie fetch
+        window.onload = () => {
+            fetchMovies('action'); // Default to showing action movies
+        };
+
+        async function fetchMovies(query) {
+            try {
+                // Ensure a smooth user experience
+                movieResults.innerHTML = '<p class="text-center text-xl text-yellow-500 col-span-full">Loading movies...</p>';
+                
+                const response = await fetch(`${BASE_URL}/search?query=${query}`, {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok.');
+                }
+
+                const movies = await response.json();
+                
+                if (movies.length === 0) {
+                    movieResults.innerHTML = '<p class="text-center text-xl text-gray-400 col-span-full">No movies found. Try a different search!</p>';
+                } else {
+                    displayMovies(movies);
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch movies:', error);
+                movieResults.innerHTML = '<p class="text-center text-red-500 text-xl col-span-full">Failed to connect to the backend. Please ensure your Flask server is running and reachable.</p>';
+            }
+        }
+
+        async function fetchMovieDetails(imdbId) {
+            try {
+                // Show loading state in the modal
+                modalBody.innerHTML = '<p class="text-center text-xl text-yellow-500">Loading details...</p>';
+                movieModal.style.display = 'block';
+
+                const response = await fetch(`${BASE_URL}/movie/${imdbId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch movie details.');
+                }
+                
+                const movieData = await response.json();
+                displayMovieDetails(movieData);
+            } catch (error) {
+                console.error('Failed to fetch movie details:', error);
+                modalBody.innerHTML = '<p class="text-center text-red-500 text-xl">Failed to load movie details. Please try again later.</p>';
+            }
+        }
+
+        function displayMovies(movies) {
+            movieResults.innerHTML = '';
+            movies.forEach(movie => {
+                const movieCard = document.createElement('div');
+                movieCard.className = 'bg-gray-800 rounded-xl overflow-hidden shadow-xl transform transition-transform duration-300 hover:scale-105 cursor-pointer';
+                movieCard.innerHTML = `
+                    <img src="${movie.Poster}" alt="${movie.Title} poster" class="w-full h-80 object-cover">
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-white mb-1 truncate">${movie.Title}</h3>
+                        <p class="text-sm text-gray-400">${movie.Year}</p>
+                    </div>
+                `;
+                movieCard.addEventListener('click', () => fetchMovieDetails(movie.imdbID));
+                movieResults.appendChild(movieCard);
+            });
+        }
+
+        function displayMovieDetails(movieData) {
+            const ratingsHtml = movieData.Ratings.map(rating => `
+                <div class="bg-gray-700 p-2 rounded-lg flex items-center justify-between">
+                    <span class="font-semibold text-gray-300">${rating.Source}</span>
+                    <span class="text-yellow-400">${rating.Value}</span>
+                </div>
+            `).join('');
+
+            const userReviewsHtml = movieData.user_reviews.length > 0 ? movieData.user_reviews.map(review => `
+                <div class="bg-gray-700 p-4 rounded-lg shadow-inner mb-4">
+                    <h4 class="font-bold text-gray-200">${review.username} - <span class="text-yellow-400">${review.rating}/10</span></h4>
+                    <p class="text-gray-400 mt-2">${review.comment}</p>
+                </div>
+            `).join('') : '<p class="text-gray-400 text-center">No user reviews yet. Be the first to add one!</p>';
+
+            modalBody.innerHTML = `
+                <div class="flex flex-col md:flex-row gap-6">
+                    <img src="${movieData.Poster}" alt="${movieData.Title} poster" class="rounded-lg shadow-xl md:w-1/3 object-cover">
+                    <div class="md:w-2/3">
+                        <h2 class="text-4xl font-bold text-white mb-2">${movieData.Title} (${movieData.Year})</h2>
+                        <p class="text-gray-400 mb-4">${movieData.Genre} | ${movieData.Runtime} | ${movieData.Rated}</p>
+                        <p class="text-gray-300 mb-6">${movieData.Plot}</p>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <p><span class="font-semibold text-yellow-500">Director:</span> ${movieData.Director}</p>
+                            <p><span class="font-semibold text-yellow-500">Actors:</span> ${movieData.Actors}</p>
+                            <p><span class="font-semibold text-yellow-500">Box Office:</span> ${movieData.BoxOffice}</p>
+                            <p><span class="font-semibold text-yellow-500">IMDb Rating:</span> ${movieData.imdbRating} / 10</p>
+                        </div>
+                        
+                        <h3 class="text-2xl font-bold text-yellow-500 mb-4">Ratings</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            ${ratingsHtml}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold text-yellow-500 mb-4">User Reviews</h3>
+                    <div id="user-reviews-list" class="scrollable-content bg-gray-800 p-4 rounded-lg shadow-inner">
+                        ${userReviewsHtml}
+                    </div>
+
+                    <form id="review-form" class="mt-6 p-6 bg-gray-800 rounded-lg shadow-lg">
+                        <h4 class="text-xl font-bold text-white mb-4">Add Your Review</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label for="username" class="block text-gray-400">Your Name</label>
+                                <input type="text" id="username" name="username" class="w-full p-2 mt-1 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                            </div>
+                            <div>
+                                <label for="rating" class="block text-gray-400">Rating (1-10)</label>
+                                <input type="number" id="rating" name="rating" min="1" max="10" class="w-full p-2 mt-1 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" required>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label for="comment" class="block text-gray-400">Review</label>
+                            <textarea id="comment" name="comment" rows="4" class="w-full p-2 mt-1 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" required></textarea>
+                        </div>
+                        <button type="submit" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-2 px-6 rounded-full shadow-md transition-colors duration-200">Submit Review</button>
+                    </form>
+                </div>
+            `;
+
+            // Add event listener for the review form
+            const reviewForm = document.getElementById('review-form');
+            reviewForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const newReview = {
+                    username: document.getElementById('username').value,
+                    rating: document.getElementById('rating').value,
+                    comment: document.getElementById('comment').value
+                };
+                
+                try {
+                    const response = await fetch(`${BASE_URL}/review/${movieData.imdbID}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newReview)
+                    });
+                    
+                    if (response.ok) {
+                        // Refresh the movie details to show the new review
+                        fetchMovieDetails(movieData.imdbID);
+                        reviewForm.reset();
+                    } else {
+                        throw new Error('Failed to submit review.');
+                    }
+                } catch (error) {
+                    console.error('Error submitting review:', error);
+                    alert('Could not submit review. Please try again.');
+                }
+            });
+        }
+
+        // Event listeners for user actions
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                fetchMovies(query);
+            }
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchButton.click();
+            }
+        });
+
+        categoryButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                const query = e.target.dataset.category;
+                fetchMovies(query);
+            });
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            movieModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === movieModal) {
+                movieModal.style.display = 'none';
+            }
+        });
+
+    </script>
+</body>
+</html>
